@@ -29,11 +29,15 @@ import java.net.Socket;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.TimeZone;
+import java.io.File;
+import java.io.FileReader;
 
 public class WebWorker implements Runnable
 {
 
 	private Socket socket;
+	private String filename;
+	private File pathFile;
 
 	/**
 	 * Constructor: must have a valid open socket
@@ -56,8 +60,8 @@ public class WebWorker implements Runnable
 			InputStream is = socket.getInputStream();
 			OutputStream os = socket.getOutputStream();
 			readHTTPRequest(is);
-			writeHTTPHeader(os, "text/html");
-			writeContent(os);
+			writeHTTPHeader(os, "text/html", pathFile);
+			writeContent(os, pathFile);
 			os.flush();
 			socket.close();
 		}
@@ -75,6 +79,8 @@ public class WebWorker implements Runnable
 	private void readHTTPRequest(InputStream is)
 	{
 		String line;
+		String fname;
+		
 		BufferedReader r = new BufferedReader(new InputStreamReader(is));
 		while (true)
 		{
@@ -83,6 +89,12 @@ public class WebWorker implements Runnable
 				while (!r.ready())
 					Thread.sleep(1);
 				line = r.readLine();
+				if (line.contains("GET")) {
+					fname = line.substring(line.indexOf("/") + 1, line.indexOf(" ", line.indexOf("/")));
+					filename = "src/edu/nmsu/cs/webserver/" + filename;
+					pathFile = new File(filename);
+				}
+					
 				System.err.println("Request line: (" + line + ")");
 				if (line.length() == 0)
 					break;
@@ -104,23 +116,65 @@ public class WebWorker implements Runnable
 	 * @param contentType
 	 *          is the string MIME content type (e.g. "text/html")
 	 **/
-	private void writeHTTPHeader(OutputStream os, String contentType) throws Exception
+	private void writeHTTPHeader(OutputStream os, String contentType, File filename) throws Exception
 	{
-		Date d = new Date();
-		DateFormat df = DateFormat.getDateTimeInstance();
-		df.setTimeZone(TimeZone.getTimeZone("GMT"));
-		os.write("HTTP/1.1 200 OK\n".getBytes());
-		os.write("Date: ".getBytes());
-		os.write((df.format(d)).getBytes());
-		os.write("\n".getBytes());
-		os.write("Server: Jon's very own server\n".getBytes());
-		// os.write("Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n".getBytes());
-		// os.write("Content-Length: 438\n".getBytes());
-		os.write("Connection: close\n".getBytes());
-		os.write("Content-Type: ".getBytes());
-		os.write(contentType.getBytes());
-		os.write("\n\n".getBytes()); // HTTP header ends with 2 newlines
+		if(filename != null) {
+			if (filename.exists()) {
+					Date d = new Date();
+					DateFormat df = DateFormat.getDateTimeInstance();
+					df.setTimeZone(TimeZone.getTimeZone("GMT"));
+					os.write("HTTP/1.1 200 OK\n".getBytes());
+					os.write("Date: ".getBytes());
+					os.write((df.format(d)).getBytes());
+					os.write("\n".getBytes());
+					os.write("Server: Jon's very own server\n".getBytes());
+					// os.write("Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n".getBytes());
+					// os.write("Content-Length: 438\n".getBytes());
+					os.write("Connection: close\n".getBytes());
+					os.write("Content-Type: ".getBytes());
+					os.write(contentType.getBytes());
+					os.write("\n\n".getBytes()); // HTTP header ends with 2 newlines
+			}
+			else {
+				Date d = new Date();
+				DateFormat df = DateFormat.getDateTimeInstance();
+				df.setTimeZone(TimeZone.getTimeZone("GMT"));
+				os.write("HTTP/1.1 400 NOT FOUND\n".getBytes());
+				os.write("Date: ".getBytes());
+				os.write((df.format(d)).getBytes());
+				os.write("\n".getBytes());
+				os.write("Server: Jon's very own server\n".getBytes());
+				// os.write("Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n".getBytes());
+				// os.write("Content-Length: 438\n".getBytes());
+				os.write("Connection: close\n".getBytes());
+				os.write("Content-Type: ".getBytes());
+				os.write(contentType.getBytes());
+				os.write("\n\n".getBytes()); // HTTP header ends with 2 newlines
+			}
+				
+		}
+		
+		else {
+			Date d = new Date();
+			DateFormat df = DateFormat.getDateTimeInstance();
+			df.setTimeZone(TimeZone.getTimeZone("GMT"));
+			os.write("HTTP/1.1 200 OK\n".getBytes());
+			os.write("Date: ".getBytes());
+			os.write((df.format(d)).getBytes());
+			os.write("\n".getBytes());
+			os.write("Server: Jon's very own server\n".getBytes());
+			// os.write("Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n".getBytes());
+			// os.write("Content-Length: 438\n".getBytes());
+			os.write("Connection: close\n".getBytes());
+			os.write("Content-Type: ".getBytes());
+			os.write(contentType.getBytes());
+			os.write("\n\n".getBytes()); // HTTP header ends with 2 newlines
+		}
+			
+		
+	
 		return;
+		
 	}
 
 	/**
@@ -130,11 +184,17 @@ public class WebWorker implements Runnable
 	 * @param os
 	 *          is the OutputStream object to write to
 	 **/
-	private void writeContent(OutputStream os) throws Exception
+	private void writeContent(OutputStream os, File filename) throws Exception
 	{
-		os.write("<html><head></head><body>\n".getBytes());
-		os.write("<h3>My web server works!</h3>\n".getBytes());
-		os.write("</body></html>\n".getBytes());
+		if (filename != null && filename.exists()) {
+			BufferedReader test = new BufferedReader(new FileReader(filename));
+			String tester = test.readLine();
+			while(tester != null) {
+				os.write(tester.getBytes());
+				tester = test.readLine();
+			}
+			test.close();
+		}
 	}
 
 } // end class
