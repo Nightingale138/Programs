@@ -1,7 +1,7 @@
 package edu.nmsu.cs.webserver;
 
 /**
- * A simple web server: it creates a new WebWorker for each new client connection, so all the
+ * A simple web server: it chdgfhreates a new WebWorker for each new client connection, so all the
  * WebServer object does is listen on the port for incoming client connection requests.
  *
  * This class contains the application "main()" (see below). At startup, main() creates an object of
@@ -21,7 +21,7 @@ public class WebServer
 {
 	private ServerSocket	socket;
 
-	private boolean				running;
+	private boolean			running;
 
 	/**
 	 * Constructor

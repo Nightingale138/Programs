@@ -1,5 +1,6 @@
 package edu.nmsu.cs.webserver;
 
+
 /**
  * Web worker: an object of this class executes in its own new thread to receive and respond to a
  * single HTTP request. After the constructor the object executes on its "run" method, and leaves
@@ -21,23 +22,23 @@ package edu.nmsu.cs.webserver;
  *
  **/
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
+
 import java.net.Socket;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.TimeZone;
-import java.io.File;
-import java.io.FileReader;
+
+import java.io.*;
+import java.awt.image.*;
+import javax.imageio.*;
 
 public class WebWorker implements Runnable
 {
 
 	private Socket socket;
-	private String filename;
-	private File pathFile;
+	private String fileName;
+	private File pathfile;
+	private String typeExtension;
 
 	/**
 	 * Constructor: must have a valid open socket
@@ -60,18 +61,35 @@ public class WebWorker implements Runnable
 			InputStream is = socket.getInputStream();
 			OutputStream os = socket.getOutputStream();
 			readHTTPRequest(is);
-			writeHTTPHeader(os, "text/html", pathFile);
-			writeContent(os, pathFile);
+			if(typeExtension != null) {
+				if (typeExtension.equals("html"))
+					writeHTTPHeader(os, "text/html", pathfile);
+				
+				
+				// gets the different types of image files
+				else if(typeExtension.equals("gif"))
+					writeHTTPHeader(os, "image/gif", pathfile);
+				
+				else if (typeExtension.equals("jpeg"))
+					writeHTTPHeader(os, "image/jpg", pathfile);
+				
+				else if(typeExtension.equals("png"))
+					writeHTTPHeader(os, "image/png", pathfile);
+			} // end if
+			else
+				writeHTTPHeader(os, "text/html", pathfile);
+			
+			writeContent(os, pathfile);
 			os.flush();
 			socket.close();
-		}
+		} // end try
 		catch (Exception e)
 		{
 			System.err.println("Output error: " + e);
-		}
+		} // end catch
 		System.err.println("Done handling connection.");
 		return;
-	}
+	} // end class
 
 	/**
 	 * Read the HTTP request header.
@@ -79,8 +97,6 @@ public class WebWorker implements Runnable
 	private void readHTTPRequest(InputStream is)
 	{
 		String line;
-		String fname;
-		
 		BufferedReader r = new BufferedReader(new InputStreamReader(is));
 		while (true)
 		{
@@ -89,23 +105,25 @@ public class WebWorker implements Runnable
 				while (!r.ready())
 					Thread.sleep(1);
 				line = r.readLine();
-				if (line.contains("GET")) {
-					fname = line.substring(line.indexOf("/") + 1, line.indexOf(" ", line.indexOf("/")));
-					filename = "src/edu/nmsu/cs/webserver/" + filename;
-					pathFile = new File(filename);
-				}
-					
 				System.err.println("Request line: (" + line + ")");
+				if(line.contains("GET") && !line.contains("favicon")) {
+					fileName = line.substring(line.indexOf('/') + 1, line.indexOf(' ', line.indexOf('/')));
+					
+					//targets the www directory
+					fileName = "www/" + fileName;
+					typeExtension = fileName.substring(fileName.indexOf('.') + 1);
+					pathfile = new File(fileName);
+				} // end if
 				if (line.length() == 0)
 					break;
-			}
+			} // end try
 			catch (Exception e)
 			{
 				System.err.println("Request error: " + e);
 				break;
-			}
-		}
-		return;
+			} // end catch
+		} // end while
+		return ;
 	}
 
 	/**
@@ -116,44 +134,38 @@ public class WebWorker implements Runnable
 	 * @param contentType
 	 *          is the string MIME content type (e.g. "text/html")
 	 **/
-	private void writeHTTPHeader(OutputStream os, String contentType, File filename) throws Exception
+	private void writeHTTPHeader(OutputStream os, String contentType, File fname) throws Exception
 	{
-		if(filename != null) {
-			if (filename.exists()) {
-					Date d = new Date();
-					DateFormat df = DateFormat.getDateTimeInstance();
-					df.setTimeZone(TimeZone.getTimeZone("GMT"));
-					os.write("HTTP/1.1 200 OK\n".getBytes());
-					os.write("Date: ".getBytes());
-					os.write((df.format(d)).getBytes());
-					os.write("\n".getBytes());
-					os.write("Server: Jon's very own server\n".getBytes());
-					// os.write("Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n".getBytes());
-					// os.write("Content-Length: 438\n".getBytes());
-					os.write("Connection: close\n".getBytes());
-					os.write("Content-Type: ".getBytes());
-					os.write(contentType.getBytes());
-					os.write("\n\n".getBytes()); // HTTP header ends with 2 newlines
-			}
-			else {
+		if(fname != null) {
+			if(fname.exists()) {
 				Date d = new Date();
 				DateFormat df = DateFormat.getDateTimeInstance();
 				df.setTimeZone(TimeZone.getTimeZone("GMT"));
-				os.write("HTTP/1.1 400 NOT FOUND\n".getBytes());
+				os.write("HTTP/1.1 200 OK\n".getBytes());
 				os.write("Date: ".getBytes());
 				os.write((df.format(d)).getBytes());
 				os.write("\n".getBytes());
-				os.write("Server: Jon's very own server\n".getBytes());
-				// os.write("Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n".getBytes());
-				// os.write("Content-Length: 438\n".getBytes());
+				os.write("Server: Ruben's very own server\n".getBytes());
 				os.write("Connection: close\n".getBytes());
 				os.write("Content-Type: ".getBytes());
 				os.write(contentType.getBytes());
 				os.write("\n\n".getBytes()); // HTTP header ends with 2 newlines
-			}
-				
-		}
-		
+			} // end if
+			else {
+				Date d = new Date();
+				DateFormat df = DateFormat.getDateTimeInstance();
+				df.setTimeZone(TimeZone.getTimeZone("GMT"));
+				os.write("HTTP/1.1 404 NOT FOUND\n".getBytes());
+				os.write("Date: ".getBytes());
+				os.write((df.format(d)).getBytes());
+				os.write("\n".getBytes());
+				os.write("Server: Ruben's very own server\n".getBytes());
+				os.write("Connection: close\n".getBytes());
+				os.write("Content-Type: ".getBytes());
+				os.write(contentType.getBytes());
+				os.write("\n\n".getBytes()); // HTTP header ends with 2 newlines
+			} // end else
+		} // end if
 		else {
 			Date d = new Date();
 			DateFormat df = DateFormat.getDateTimeInstance();
@@ -162,20 +174,14 @@ public class WebWorker implements Runnable
 			os.write("Date: ".getBytes());
 			os.write((df.format(d)).getBytes());
 			os.write("\n".getBytes());
-			os.write("Server: Jon's very own server\n".getBytes());
-			// os.write("Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n".getBytes());
-			// os.write("Content-Length: 438\n".getBytes());
+			os.write("Server: Ruben's very own server\n".getBytes());
 			os.write("Connection: close\n".getBytes());
 			os.write("Content-Type: ".getBytes());
 			os.write(contentType.getBytes());
 			os.write("\n\n".getBytes()); // HTTP header ends with 2 newlines
-		}
-			
-		
-	
+		} // end else
 		return;
-		
-	}
+	} // end write
 
 	/**
 	 * Write the data content to the client network connection. This MUST be done after the HTTP
@@ -184,17 +190,61 @@ public class WebWorker implements Runnable
 	 * @param os
 	 *          is the OutputStream object to write to
 	 **/
-	private void writeContent(OutputStream os, File filename) throws Exception
+	private void writeContent(OutputStream os, File fname) throws Exception
 	{
-		if (filename != null && filename.exists()) {
-			BufferedReader test = new BufferedReader(new FileReader(filename));
-			String tester = test.readLine();
-			while(tester != null) {
-				os.write(tester.getBytes());
-				tester = test.readLine();
+		if(fname != null && fname.exists()) {
+			
+			if(typeExtension.equals("html")) {
+				BufferedReader reader = new BufferedReader (new FileReader(fname));
+				String contentLine = reader.readLine();
+				
+				while(contentLine != null) {
+					
+					os.write(contentLine.getBytes());
+					contentLine = reader.readLine();
+				} // end while
+				
+				reader.close();
+			} // end if
+			
+			if(typeExtension.equals("png")) {
+				BufferedImage img = null;
+				ByteArrayOutputStream output = new ByteArrayOutputStream();
+				try {
+					img = ImageIO.read(fname);
+				} // end try
+				catch(IOException e){}
+				
+				ImageIO.write(img, "png", output);
+				byte [] data = output.toByteArray();
+				os.write(data);
 			}
-			test.close();
-		}
-	}
-
+			// gets different types of image types
+			if(typeExtension.equals("jpeg")) {
+				BufferedImage img = null;
+				ByteArrayOutputStream output = new ByteArrayOutputStream();
+				try {
+					img = ImageIO.read(fname);
+				} // end try
+				catch(IOException e){}
+				
+				ImageIO.write(img, "jpg", output);
+				byte [] data = output.toByteArray();
+				os.write(data);
+			} // end if
+			
+			if(typeExtension.equals("gif")) {
+				BufferedImage img = null;
+				ByteArrayOutputStream output = new ByteArrayOutputStream();
+				try {
+					img = ImageIO.read(fname);
+				} // end try
+				catch(IOException e){}
+				
+				ImageIO.write(img, "gif", output);
+				byte [] data = output.toByteArray();
+				os.write(data);
+			} // end if
+		} // end outer if
+	} // end write
 } // end class
